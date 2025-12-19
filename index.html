@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Browser</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body, html { margin: 0; padding: 0; overflow: hidden; font-family: Arial, sans-serif; }
+    #browser { display: flex; height: 100vh; }
+    #tabs { width: 200px; background-color: #2c2f33; display: flex; flex-direction: column; padding: 10px; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
+    .tab { padding: 15px; color: white; background-color: #424549; margin-bottom: 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .tab.active { background-color: #7289da; }
+    #controls { display: flex; background-color: #40444b; padding: 10px; align-items: center; justify-content: space-between; width: 100%; }
+    button { margin-right: 10px; padding: 10px; background-color: #7289da; border: none; border-radius: 8px; color: white; cursor: pointer; }
+    button:hover { background-color: #5b6eae; }
+    input { flex-grow: 1; padding: 10px; margin-right: 10px; border-radius: 8px; border: none; background-color: #2c2f33; color: white; }
+    input::placeholder { color: #999; }
+    iframe { flex-grow: 1; border: none; background-color: #18191c; }
+    .close-btn { color: white; cursor: pointer; margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <div id="browser">
+    <div id="tabs"></div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column;">
+      <div id="controls">
+        <button onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
+        <button onclick="goForward()"><i class="fa fa-arrow-right"></i></button>
+        <button onclick="reloadPage()"><i class="fa fa-rotate-right"></i></button>
+        <input id="url" placeholder="Enter URL or Search" onkeydown="handleKey(event)" />
+        <button onclick="addTab()">+ Tab</button>
+      </div>
+      <iframe id="browserFrame" src="https://www.google.com" onload="updateTabTitle()"></iframe>
+    </div>
+  </div>
+
+  <script>
+    let tabs = [];
+    let currentTab = null;
+
+    function addTab(url = 'https://www.google.com') {
+      const tabId = `tab-${tabs.length}`;
+      tabs.push({ id: tabId, url, history: [url], currentIndex: 0, title: 'New Tab' });
+      const tabElement = document.createElement('div');
+      tabElement.textContent = 'Loading...';
+      tabElement.classList.add('tab');
+      tabElement.id = tabId;
+      tabElement.onclick = () => switchTab(tabId);
+
+      const closeButton = document.createElement('span');
+      closeButton.innerHTML = '&times;';
+      closeButton.classList.add('close-btn');
+      closeButton.onclick = (e) => { e.stopPropagation(); closeTab(tabId); };
+
+      tabElement.appendChild(closeButton);
+      document.getElementById('tabs').appendChild(tabElement);
+      switchTab(tabId);
+    }
+
+    function closeTab(tabId) {
+      const tabIndex = tabs.findIndex(t => t.id === tabId);
+      if (tabIndex !== -1) {
+        document.getElementById(tabId).remove();
+        tabs.splice(tabIndex, 1);
+        if (tabs.length > 0) switchTab(tabs[0].id);
+      }
+    }
+
+    function switchTab(tabId) {
+      currentTab = tabs.find(t => t.id === tabId);
+      document.getElementById('url').value = currentTab.url;
+      document.getElementById('browserFrame').src = currentTab.url;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function goBack() {
+      if (currentTab.currentIndex > 0) {
+        currentTab.currentIndex--;
+        updateFrame();
+      }
+    }
+
+    function goForward() {
+      if (currentTab.currentIndex < currentTab.history.length - 1) {
+        currentTab.currentIndex++;
+        updateFrame();
+      }
+    }
+
+    function reloadPage() {
+      document.getElementById('browserFrame').src = currentTab.url;
+    }
+
+    function handleKey(event) {
+      if (event.key === 'Enter') {
+        let inputUrl = document.getElementById('url').value;
+        if (!inputUrl.startsWith('http')) inputUrl = `https://www.google.com/search?q=${encodeURIComponent(inputUrl)}`;
+        currentTab.url = inputUrl;
+        currentTab.history.push(inputUrl);
+        currentTab.currentIndex++;
+        updateFrame();
+      }
+    }
+
+    function updateFrame() {
+      const currentUrl = currentTab.history[currentTab.currentIndex];
+      currentTab.url = currentUrl;
+      document.getElementById('url').value = currentUrl;
+      document.getElementById('browserFrame').src = currentUrl;
+    }
+
+    function updateTabTitle() {
+      const frame = document.getElementById('browserFrame');
+      const currentTabElement = document.getElementById(currentTab.id);
+      currentTab.title = frame.contentWindow.document.title || 'New Tab';
+      currentTabElement.textContent = currentTab.title;
+      const closeButton = document.createElement('span');
+      closeButton.innerHTML = '&times;';
+      closeButton.classList.add('close-btn');
+      closeButton.onclick = (e) => { e.stopPropagation(); closeTab(currentTab.id); };
+      currentTabElement.appendChild(closeButton);
+    }
+
+    addTab();
+  </script>
+</body>
+</html>
